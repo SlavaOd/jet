@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Seller / SalePoint / SR — локально и с сервера</title>
+  <title>Seller / SalePoint / SR — из корня: /seller.xlsx</title>
   <style>
     :root{--bg:#fff;--fg:#111827;--muted:#6b7280;--border:#e5e7eb;--radius:16px;--shadow:0 1px 2px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.06);--space:14px}
     html,body{height:100%}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,Noto Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;background:var(--bg);color:var(--fg)}
@@ -14,9 +14,7 @@
     .card{border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);background:#fff}
     .content{padding:var(--space)}
     .row{display:grid;gap:var(--space)}
-    label{font-size:13px;color:var(--muted);margin-bottom:6px;display:block}
-    select,button,input[type=file]{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:#fff;font-size:14px}
-    button{cursor:pointer}
+    select,button{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:#fff;font-size:14px}
     .muted{color:var(--muted);font-size:12px}
     .metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space)}
     @media(max-width:420px){.metrics{grid-template-columns:1fr}}
@@ -26,29 +24,23 @@
     .divider{height:1px;background:var(--border);margin:8px 0}
     .error{color:#b91c1c;font-size:13px;white-space:pre-line}
     .title{font-size:13px;font-weight:700;margin-bottom:6px}
-    .drop{border:2px dashed var(--border);border-radius:12px;padding:16px;text-align:center}
-    .drop.drag{border-color:#94a3b8;background:#f8fafc}
-    /* Подсветка активной ТТ */
     .metric.active-tt{background:#ecfdf5;border-color:#10b981}
     .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#ecfdf5;color:#065f46;font-size:11px;border:1px solid #10b981;margin-left:6px}
-    .mode{font-size:12px;padding:6px 10px;border:1px dashed var(--border);border-radius:10px}
   </style>
 </head>
 <body>
 <header>
   <div class="inner container">
     <div style="font-size:20px">📄</div>
-    <h1>Фильтр Seller / SalePoint / SR — локально и с сервера</h1>
+    <h1>Фильтр Seller / SalePoint / SR — файл из корня (/seller.xlsx)</h1>
     <div class="muted" style="margin-left:auto">TERRITORY → POS NAME → MOBILE_NUMBER</div>
   </div>
 </header>
 
 <main class="container">
-  <!-- Источник/режим -->
   <section class="card">
     <div class="content row">
-      <div class="mode" id="mode-text">Режим: —</div>
-      <div class="muted">Источник файла: <code id="file-url"></code></div>
+      <div class="muted">Источник файла: <code id="file-url">/seller.xlsx</code></div>
       <div class="row" style="grid-template-columns:1fr 1fr">
         <button id="reload">🔄 Перечитать файл</button>
         <button id="reset">♻️ Сбросить фильтры</button>
@@ -58,34 +50,23 @@
     </div>
   </section>
 
-  <!-- Загрузка локального файла (показывается если file:// или по кнопке) -->
-  <section class="card" id="local-box" style="margin-top:12px;display:none;">
-    <div class="content row">
-      <div class="row">
-        <label for="file">Локальная проверка: выберите Excel (*.xlsx) с листами <b>Seller</b> (обязательно), <b>SalePoint</b> (по точке) и <b>SR</b> (по территории). Файл не загружается — читается в браузере.</label>
-        <input id="file" type="file" accept=".xlsx" />
-        <div id="drop" class="drop muted">или перетащите файл сюда</div>
-      </div>
-    </div>
-  </section>
-
   <!-- Фильтры -->
   <section class="card" style="margin-top:12px;">
     <div class="content row">
       <div class="row">
         <label for="territory">TERRITORY</label>
         <select id="territory" disabled>
-          <option value="">Сначала подключите файл</option>
+          <option value="">Ожидаю файл…</option>
         </select>
       </div>
       <div class="row">
-        <label for="pos">POS NAME (торговая точка)</label>
+        <label for="pos">POS NAME — ORG ID</label>
         <select id="pos" disabled>
           <option value="">Сначала выберите TERRITORY</option>
         </select>
       </div>
       <div class="row">
-        <label for="mobile">MOBILE_NUMBER</label>
+        <label for="mobile">MOBILE_NUMBER — First Last</label>
         <select id="mobile" disabled>
           <option value="">Сначала выберите POS NAME</option>
         </select>
@@ -93,7 +74,7 @@
     </div>
   </section>
 
-  <!-- Свод по территории (SR + агрегаты по операциям) -->
+  <!-- Свод по территории -->
   <section class="card" style="margin-top:12px;">
     <div class="content">
       <div id="result-ter" style="display:none;">
@@ -107,17 +88,19 @@
     </div>
   </section>
 
-  <!-- Результаты по точке и по номеру -->
+  <!-- Свод по точке и детали по номеру -->
   <section class="card" style="margin-top:12px;">
     <div class="content">
-      <div id="result-empty" class="muted">Подключите файл → выберите TERRITORY (свод SR + суммы операций). Затем выберите POS NAME (свод точки). После выбора номера — детали по номеру (Seller).</div>
+      <div id="result-empty" class="muted">Положите в корень /seller.xlsx → выберите TERRITORY (свод SR + суммы). Затем выберите POS (свод по точке). После номера — детали (Seller).</div>
 
       <div id="result-pos" style="display:none;">
         <div class="title">ИТОГО по торговой точке (SalePoint) <span id="pos-pill" class="pill" style="display:none">активна</span></div>
         <div class="muted" id="pos-caption"></div>
         <div class="divider"></div>
         <div class="metrics" id="metrics-pos"></div>
-        <div class="muted" id="pos-warning" style="display:none;margin-top:8px;">Для выбранной точки нет данных на листе <b>SalePoint</b>. Показаны суммы по номерам (из Seller).</div>
+        <div class="muted" id="pos-warning" style="display:none;margin-top:8px;">
+          Для выбранной точки нет строки на листе <b>SalePoint</b>. Показаны суммы по номерам (из Seller).
+        </div>
       </div>
 
       <div id="result-num" style="display:none;">
@@ -131,19 +114,17 @@
   </section>
 </main>
 
-<!-- XLSX парсер -->
+<!-- XLSX -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
-  // === Пути к файлу на СЕРВЕРЕ ===
-  // Пробуем по очереди: /seller.xlsx (корень домена), seller.xlsx (текущая папка, например GitHub Pages /repo/)
-  const EXCEL_URLS = ['/seller.xlsx', 'seller.xlsx'];
+  const EXCEL_URL = '/seller.xlsx'; // читаем строго из корня
 
-  // Порядок метрик: после MOBILE_NUMBER → 2) Total JET → 3) Реєстрації СП jet → 4) Реєстрації СП ussd → далее остальные
+  // Порядок метрик (для Seller и общей логики)
   const METRIC_COLUMNS = [
     'MOBILE_NUMBER',
     'Total операції JET',
     'Реєстрації СП jet 01-19.08.25',
-    'Реєстрації СП ussd 01-19.08.25', // ← перемещено на 4-е место
+    'Реєстрації СП ussd 01-19.08.25',
     'ТП Професіонал',
     'UpSell 01-19.08.25',
     'TV 01-19.08.25',
@@ -157,7 +138,7 @@
     'Активна тт'
   ];
   const REQUIRED_KEYS_SELLER = ['TERRITORY','POS NAME',...METRIC_COLUMNS];
-  const OPS_KEYS = METRIC_COLUMNS.filter(k => k !== 'MOBILE_NUMBER' && k !== 'Активна тт');
+  const OPS_KEYS = METRIC_COLUMNS.filter(k=>k!=='MOBILE_NUMBER' && k!=='Активна тт');
 
   // Доп. поля для подписей
   const COL_ORG_ID = 'ORG ID';
@@ -165,97 +146,223 @@
   const COL_LAST_NAME  = 'Last Name';
 
   // Элементы
-  const elMode  = document.getElementById('mode-text');
-  const elFileUrl = document.getElementById('file-url');
-  const elReload  = document.getElementById('reload');
-  const elReset   = document.getElementById('reset');
-  const elRows    = document.getElementById('rows-count');
-  const elErr     = document.getElementById('error');
-  const localBox  = document.getElementById('local-box');
-
+  const elRows = document.getElementById('rows-count');
+  const elErr  = document.getElementById('error');
   const selT = document.getElementById('territory');
   const selP = document.getElementById('pos');
   const selM = document.getElementById('mobile');
-
   const terBox = document.getElementById('result-ter');
   const terCap = document.getElementById('ter-caption');
-  const terSr = document.getElementById('metrics-ter-sr');
+  const terSr  = document.getElementById('metrics-ter-sr');
   const terOps = document.getElementById('metrics-ter-ops');
-
   const resEmpty = document.getElementById('result-empty');
   const posBox   = document.getElementById('result-pos');
   const posCap   = document.getElementById('pos-caption');
   const posWarn  = document.getElementById('pos-warning');
   const posMetrics = document.getElementById('metrics-pos');
-  const posPill = document.getElementById('pos-pill');
-
+  const posPill  = document.getElementById('pos-pill');
   const numBox   = document.getElementById('result-num');
   const elMobile = document.getElementById('mobile-value');
   const numMetrics = document.getElementById('metrics-num');
-
-  const inpFile = document.getElementById('file');
-  const drop = document.getElementById('drop');
+  document.getElementById('reload').addEventListener('click', ()=>loadExcel());
+  document.getElementById('reset').addEventListener('click', resetAll);
 
   // Данные
-  let ROWS_SELLER = []; let ROWS_SP = []; let ROWS_SR = [];
+  let ROWS_SELLER=[], ROWS_SP=[], ROWS_SR=[];
 
   // Утилиты
   const norm = v => (v==null?'':String(v)).trim();
-  const esc  = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[c]));
+  const esc  = s => String(s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
   const uniqSorted = arr => Array.from(new Set(arr.filter(Boolean))).sort((a,b)=>a.localeCompare(b,'uk',{numeric:true,sensitivity:'base'}));
-  const setOptions = (sel, values, ph) => { sel.innerHTML=['<option value="">'+esc(ph)+'</option>'].concat(values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`)).join(''); sel.disabled=values.length===0; };
-  const setOptionsObjects = (sel, items, ph) => { sel.innerHTML=['<option value="">'+esc(ph)+'</option>'].concat(items.map(o=>`<option value="${esc(o.value)}">${esc(o.label)}</option>`)).join(''); sel.disabled=items.length===0; };
-  const setRowsCount = (nSeller,nSP,nSR) => elRows.textContent = (nSeller?`Seller: ${nSeller.toLocaleString('uk-UA')}`:'') + (nSP?` | SalePoint: ${nSP.toLocaleString('uk-UA')}`:'') + (nSR?` | SR: ${nSR.toLocaleString('uk-UA')}`:'');
+  const setOptions = (sel,values,ph)=>{ sel.innerHTML=['<option value="">'+esc(ph)+'</option>'].concat(values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`)).join(''); sel.disabled=values.length===0; };
+  const setOptionsObjects = (sel, items, ph)=>{ sel.innerHTML=['<option value="">'+esc(ph)+'</option>'].concat(items.map(o=>`<option value="${esc(o.value)}">${esc(o.label)}</option>`)).join(''); sel.disabled=items.length===0; };
+  const setRowsCount = (nSeller,nSP,nSR)=> elRows.textContent = (nSeller?`Seller: ${nSeller.toLocaleString('uk-UA')}`:'')+(nSP?` | SalePoint: ${nSP.toLocaleString('uk-UA')}`:'')+(nSR?` | SR: ${nSR.toLocaleString('uk-UA')}`:'');
   const showError = msg => elErr.textContent = msg || '';
-  const toNum = v => { const s = norm(v).replace(/\s+/g,'').replace(',', '.'); const x = parseFloat(s); return isFinite(x)? x : 0; };
+  const toNum = v => { const s = norm(v).replace(/\s+/g,'').replace(',','.'); const x = parseFloat(s); return isFinite(x)?x:0; };
   const fmtInt = x => (Math.round(x)).toLocaleString('uk-UA');
-  const fmtPercent = v => { const s = norm(v); if(!s) return '0%'; if(/%/.test(s)) return s; const n = toNum(s); if(!isFinite(n)) return s; const val = n <= 1 ? n * 100 : n; return `${Math.round(val)}%`; };
+  const fmtPercent = v => { const s=norm(v); if(!s) return '0%'; if(/%/.test(s)) return s; const n=toNum(s); const val = n<=1? n*100 : n; return `${Math.round(val)}%`; };
 
-  function sumOps(rows){ const sums = Object.fromEntries(OPS_KEYS.map(k=>[k,0])); rows.forEach(r=>{ OPS_KEYS.forEach(k=> sums[k] += toNum(r[k])); }); return sums; }
-  function sumFromSellerByPos(t,p){ const rows = ROWS_SELLER.filter(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p); return sumOps(rows); }
+  function sumOps(rows){ const sums=Object.fromEntries(OPS_KEYS.map(k=>[k,0])); rows.forEach(r=> OPS_KEYS.forEach(k=> sums[k]+=toNum(r[k])) ); return sums; }
+  function sumFromSellerByPos(t,p){ return sumOps(ROWS_SELLER.filter(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p)); }
   function sumOpsByTerritory(t){
     const rowsSP = ROWS_SP.filter(r=>norm(r['TERRITORY'])===t);
     const rowsSL = ROWS_SELLER.filter(r=>norm(r['TERRITORY'])===t);
-    const sums = {}; OPS_KEYS.forEach(k=>{ let total=0; if (rowsSP.length && rowsSP.some(r => r.hasOwnProperty(k) && norm(r[k])!=='')) { rowsSP.forEach(r=> total += toNum(r[k])); } else { rowsSL.forEach(r=> total += toNum(r[k])); } sums[k]=total; }); return sums;
+    const sums={};
+    OPS_KEYS.forEach(k=>{
+      let total=0;
+      if (rowsSP.length && rowsSP.some(r=> r.hasOwnProperty(k) && norm(r[k])!=='')) rowsSP.forEach(r=> total+=toNum(r[k]));
+      else rowsSL.forEach(r=> total+=toNum(r[k]));
+      sums[k]=total;
+    });
+    return sums;
   }
 
-  function renderMetrics(container, row, skipMobile=true, fallbackFn=null){
-    const keys = METRIC_COLUMNS.filter(k => !skipMobile || k !== 'MOBILE_NUMBER');
-    container.innerHTML = keys.map(k => { let v = row ? norm(row[k]) : ''; if((v === '' || v == null) && typeof fallbackFn === 'function'){ const fb = fallbackFn(k); if(fb != null) v = String(fb); } const isActive = (k === 'Активна тт') && (v === '1' || v === '1.0' || v === 'true'); return `<div class="metric${isActive? ' active-tt':''}"><div class="k">${esc(k)}</div><div class="v">${esc(v || '0')}</div></div>`; }).join('');
+  // Рендер по произвольному набору ключей
+  function renderMetricsKeys(container, row, keys, fallbackFn=null){
+    container.innerHTML = keys.map(k=>{
+      let v = row ? norm(row[k]) : '';
+      if((v===''||v==null) && typeof fallbackFn==='function'){ const fb=fallbackFn(k); if(fb!=null) v=String(fb); }
+      const active = (k==='Активна тт') && (v==='1' || v==='1.0' || v==='true');
+      return `<div class="metric${active?' active-tt':''}"><div class="k">${esc(k)}</div><div class="v">${esc(v||'0')}</div></div>`;
+    }).join('');
+  }
+  // Ключи для POS: вставляем "Total Strong" на второе место (после "Total операції JET"), если такая колонка есть на листе
+  function getPosKeys(){
+    const base = METRIC_COLUMNS.filter(k=>k!=='MOBILE_NUMBER'); // в POS MOBILE_NUMBER не нужен
+    const idx = base.indexOf('Total операції JET');
+    const withStrong = [...base];
+    if (idx !== -1 && !withStrong.includes('Total Strong')) {
+      withStrong.splice(idx+1, 0, 'Total Strong');
+    }
+    return withStrong;
   }
 
   function showEmpty(){ resEmpty.style.display=''; posBox.style.display='none'; numBox.style.display='none'; terBox.style.display='none'; }
-  function showTerritory(t){ if(!t){ terBox.style.display='none'; return; } terCap.textContent = t; terSr.innerHTML=''; const srRow = ROWS_SR.find(r=>norm(r['TERRITORY'])===t) || null; if(srRow){ const cards = [['План Total', norm(srRow['План Total'])], ['Факт Total', norm(srRow['Факт Total'])], ['Виконання', fmtPercent(srRow['Виконання'])]].map(([k,v])=>`<div class="metric"><div class="k">${esc(k)}</div><div class="v">${esc(v||'0')}</div></div>`).join(''); terSr.innerHTML = cards; } else { terSr.innerHTML = `<div class="muted">Нет листа SR или записи по территории.</div>`; } const sums = sumOpsByTerritory(t); terOps.innerHTML = Object.keys(sums).map(k=>`<div class="metric"><div class="k">${esc(k)}</div><div class="v">${esc(fmtInt(sums[k]))}</div></div>`).join(''); terBox.style.display=''; }
 
-  function showPos(t,p){ terBox.style.display='none'; resEmpty.style.display='none'; posBox.style.display=''; numBox.style.display='none'; posCap.textContent = `${t || '—'} • ${p || '—'}`; const spRow = ROWS_SP.find(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p) || null; const active = (spRow && (norm(spRow['Активна тт'])==='1' || norm(spRow['Активна тт'])==='true')) || ROWS_SELLER.some(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p && (norm(r['Активна тт'])==='1' || norm(r['Активна тт'])==='true')); posPill.style.display = active? '' : 'none'; const fbSums = sumFromSellerByPos(t,p); renderMetrics(posMetrics, spRow, true, (key)=> key in fbSums ? fmtInt(fbSums[key]) : null); posWarn.style.display = spRow ? 'none' : ''; }
-  function showNum(row){ if (!row){ return; } resEmpty.style.display='none'; posBox.style.display='none'; numBox.style.display=''; elMobile.textContent = norm(row['MOBILE_NUMBER']) || '—'; renderMetrics(numMetrics, row, true); }
+  function showTerritory(t){
+    if(!t){ terBox.style.display='none'; return; }
+    terCap.textContent = t;
+    const sr = ROWS_SR.find(r=>norm(r['TERRITORY'])===t) || null;
+    terSr.innerHTML = sr
+      ? [['План Total', norm(sr['План Total'])], ['Факт Total', norm(sr['Факт Total'])], ['Виконання', fmtPercent(sr['Виконання'])]]
+        .map(([k,v])=>`<div class="metric"><div class="k">${esc(k)}</div><div class="v">${esc(v||'0')}</div></div>`).join('')
+      : `<div class="muted">Нет листа SR или записи по территории.</div>`;
+    const sums = sumOpsByTerritory(t);
+    terOps.innerHTML = Object.keys(sums).map(k=>`<div class="metric"><div class="k">${esc(k)}</div><div class="v">${esc(fmtInt(sums[k]))}</div></div>`).join('');
+    terBox.style.display='';
+  }
 
-  function rebuildPos(){ const t = norm(selT.value); const list = uniqSorted(ROWS_SELLER.filter(r=>norm(r['TERRITORY'])===t).map(r=>norm(r['POS NAME']))); const activeSet = new Set(); (ROWS_SP.length? ROWS_SP : ROWS_SELLER).forEach(r=>{ if(norm(r['TERRITORY'])===t && (norm(r['Активна тт'])==='1' || norm(r['Активна тт'])==='true')) activeSet.add(norm(r['POS NAME'])); }); const items = list.map(p=>{ let org=''; const sp = ROWS_SP.find(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p); if(sp && sp.hasOwnProperty('ORG ID')) org = norm(sp['ORG ID']); if(!org){ const sl = ROWS_SELLER.find(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p); if(sl && sl.hasOwnProperty('ORG ID')) org = norm(sl['ORG ID']); } const label = (activeSet.has(p)? '🟢 ' : '') + p + (org? ' — ' + org : ''); return { value:p, label }; }); setOptionsObjects(selP, items, t? 'Выберите точку':'Сначала выберите TERRITORY'); selM.innerHTML = '<option value="">Сначала выберите POS NAME</option>'; selM.disabled = true; if(t){ showTerritory(t); } else { terBox.style.display='none'; } numBox.style.display='none'; posBox.style.display='none'; resEmpty.style.display='none'; }
+  function showPos(t,p){
+    terBox.style.display='none';
+    resEmpty.style.display='none'; posBox.style.display=''; numBox.style.display='none';
+    posCap.textContent = `${t||'—'} • ${p||'—'}`;
+    const spRow = ROWS_SP.find(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p) || null;
+    const active = (spRow && (norm(spRow['Активна тт'])==='1'||norm(spRow['Активна тт'])==='true')) ||
+                   ROWS_SELLER.some(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p && (norm(r['Активна тт'])==='1'||norm(r['Активна тт'])==='true'));
+    posPill.style.display = active? '' : 'none';
+    const fbSums = sumFromSellerByPos(t,p);
+    // Рисуем метрики по ключам для POS (с Total Strong вторым)
+    renderMetricsKeys(posMetrics, spRow, getPosKeys(), key=> key in fbSums ? fmtInt(fbSums[key]) : null);
+    posWarn.style.display = spRow ? 'none' : '';
+  }
 
-  function rebuildMobile(){ const t = norm(selT.value), p = norm(selP.value); terBox.style.display='none'; const map = new Map(); ROWS_SELLER.forEach(r=>{ if(norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p){ const num = norm(r['MOBILE_NUMBER']); if(!num) return; const fn = r.hasOwnProperty('First Name') ? norm(r['First Name']) : ''; const ln = r.hasOwnProperty('Last Name') ? norm(r['Last Name']) : ''; const name = (fn || ln) ? (`${fn} ${ln}`.trim()) : ''; const label = name ? `${num} — ${name}` : num; if(!map.has(num)) map.set(num, { value:num, label }); }}); const items = Array.from(map.values()).sort((a,b)=>a.label.localeCompare(b.label,'uk',{numeric:true})); setOptionsObjects(selM, items, p? 'Выберите номер':'Сначала выберите POS NAME'); if(p){ showPos(t,p); } else { posBox.style.display='none'; } }
+  function showNum(row){
+    if(!row) return;
+    resEmpty.style.display='none'; posBox.style.display='none'; numBox.style.display='';
+    elMobile.textContent = norm(row['MOBILE_NUMBER']) || '—';
+    // Для номера показываем базовый набор (без MOBILE_NUMBER)
+    renderMetricsKeys(numMetrics, row, METRIC_COLUMNS.filter(k=>k!=='MOBILE_NUMBER'));
+  }
 
-  function onSelectChanged(){ const t = norm(selT.value), p = norm(selP.value), m = norm(selM.value); if(!t || !p || !m) return; const row = ROWS_SELLER.find(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p && norm(r['MOBILE_NUMBER'])===m) || null; showNum(row); }
+  function rebuildPos(){
+    const t = norm(selT.value);
+    const posNames = uniqSorted(ROWS_SELLER.filter(r=>norm(r['TERRITORY'])===t).map(r=>norm(r['POS NAME'])));
+    const activeSet = new Set();
+    (ROWS_SP.length? ROWS_SP : ROWS_SELLER).forEach(r=>{
+      if(norm(r['TERRITORY'])===t && (norm(r['Активна тт'])==='1'||norm(r['Активна тт'])==='true')) activeSet.add(norm(r['POS NAME']));
+    });
+    const items = posNames.map(p=>{
+      let org='';
+      const sp = ROWS_SP.find(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p);
+      if(sp && sp.hasOwnProperty(COL_ORG_ID)) org = norm(sp[COL_ORG_ID]);
+      if(!org){ const sl = ROWS_SELLER.find(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p); if(sl && sl.hasOwnProperty(COL_ORG_ID)) org = norm(sl[COL_ORG_ID]); }
+      const label = (activeSet.has(p)? '🟢 ' : '') + p + (org? ' — ' + org : '');
+      return { value:p, label };
+    });
+    setOptionsObjects(selP, items, t? 'Выберите точку':'Сначала выберите TERRITORY');
+    selM.innerHTML = '<option value="">Сначала выберите POS NAME</option>'; selM.disabled = true;
+    if(t) showTerritory(t); else terBox.style.display='none';
+    numBox.style.display='none'; posBox.style.display='none'; resEmpty.style.display='none';
+  }
 
-  elReset.addEventListener('click', ()=>{ if(!ROWS_SELLER.length) return; setOptions(selT, uniqSorted(ROWS_SELLER.map(r=>norm(r['TERRITORY']))), 'Выберите территорию'); setOptions(selP, [], 'Сначала выберите TERRITORY'); setOptions(selM, [], 'Сначала выберите POS NAME'); selT.value=selP.value=selM.value=''; showEmpty(); });
-  elReload.addEventListener('click', ()=>{ if(location.protocol==='file:'){ elMode.textContent='Режим: локальный файл'; localBox.style.display=''; showEmpty(); } else { loadExcelFromServer(true); } });
+  function rebuildMobile(){
+    const t = norm(selT.value), p = norm(selP.value);
+    terBox.style.display='none';
+    const map = new Map();
+    ROWS_SELLER.forEach(r=>{
+      if(norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p){
+        const num = norm(r['MOBILE_NUMBER']); if(!num) return;
+        const fn = r.hasOwnProperty(COL_FIRST_NAME)? norm(r[COL_FIRST_NAME]) : '';
+        const ln = r.hasOwnProperty(COL_LAST_NAME)?  norm(r[COL_LAST_NAME])  : '';
+        const name = (fn||ln)? (`${fn} ${ln}`.trim()) : '';
+        map.set(num, { value:num, label: name? `${num} — ${name}` : num });
+      }
+    });
+    const items = Array.from(map.values()).sort((a,b)=>a.label.localeCompare(b.label,'uk',{numeric:true}));
+    setOptionsObjects(selM, items, p? 'Выберите номер':'Сначала выберите POS NAME');
+    if(p) showPos(t,p); else posBox.style.display='none';
+  }
 
-  // === Загрузка локального файла ===
-  async function parseFile(file){ showError(''); setRowsCount(0,0,0); ROWS_SELLER=[]; ROWS_SP=[]; ROWS_SR=[]; try{ const buf = await file.arrayBuffer(); const wb = XLSX.read(buf, { type:'array' }); const sellerName = (wb.SheetNames||[]).find(n=>String(n).trim().toLowerCase()==='seller'); if(!sellerName) throw new Error("Не найден лист 'Seller' в Excel-файле."); const wsSeller = wb.Sheets[sellerName]; const jsonSeller = XLSX.utils.sheet_to_json(wsSeller, { defval:'' }); if(!jsonSeller.length) throw new Error("Лист 'Seller' пустой."); const cols = Object.keys(jsonSeller[0]||{}); const missing = REQUIRED_KEYS_SELLER.filter(k=>!cols.includes(k)); if(missing.length) throw new Error('Отсутствуют колонки (лист Seller): ' + missing.join(', ')); ROWS_SELLER = jsonSeller; const spName = (wb.SheetNames||[]).find(n=>String(n).trim().toLowerCase()==='salepoint'); ROWS_SP = spName ? XLSX.utils.sheet_to_json(wb.Sheets[spName], { defval:'' }) : []; const srName = (wb.SheetNames||[]).find(n=>String(n).trim().toLowerCase()==='sr'); ROWS_SR = srName ? XLSX.utils.sheet_to_json(wb.Sheets[srName], { defval:'' }) : []; setRowsCount(ROWS_SELLER.length, ROWS_SP.length, ROWS_SR.length); const terr = uniqSorted(ROWS_SELLER.map(r=>norm(r['TERRITORY']))); setOptions(selT, terr, terr.length? 'Выберите территорию':'Нет данных по TERRITORY'); selT.disabled = terr.length===0; showEmpty(); }catch(e){ console.error(e); showError(e.message || 'Не удалось прочитать файл.'); setOptions(selT, [], 'Сначала подключите файл'); setOptions(selP, [], 'Сначала выберите TERRITORY'); setOptions(selM, [], 'Сначала выберите POS NAME'); showEmpty(); } }
+  function onSelectChanged(){
+    const t = norm(selT.value), p = norm(selP.value), m = norm(selM.value);
+    if(!t||!p||!m) return;
+    const row = ROWS_SELLER.find(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p && norm(r['MOBILE_NUMBER'])===m) || null;
+    showNum(row);
+  }
 
-  // Обработчики локальной загрузки
-  if(inpFile){ inpFile.addEventListener('change', e=>{ const f=e.target.files&&e.target.files[0]; if(f) parseFile(f); }); ['dragenter','dragover'].forEach(ev=>drop && drop.addEventListener(ev, e=>{e.preventDefault(); drop.classList.add('drag');})); ['dragleave','drop'].forEach(ev=>drop && drop.addEventListener(ev, e=>{e.preventDefault(); drop.classList.remove('drag');})); drop && drop.addEventListener('drop', e=>{ const f=e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) parseFile(f); }); }
+  function resetAll(){
+    if(!ROWS_SELLER.length) return;
+    setOptions(selT, uniqSorted(ROWS_SELLER.map(r=>norm(r['TERRITORY']))), 'Выберите территорию');
+    setOptions(selP, [], 'Сначала выберите TERRITORY');
+    setOptions(selM, [], 'Сначала выберите POS NAME');
+    selT.value=selP.value=selM.value=''; showEmpty();
+  }
 
-  // === Загрузка с сервера ===
-  async function loadExcelFromServer(manual=false){ showError(''); setRowsCount(0,0,0); ROWS_SELLER=[]; ROWS_SP=[]; ROWS_SR=[]; const tried=[]; try{ let res=null, used=null; for(const base of EXCEL_URLS){ const url = base + (base.includes('?') ? `&v=${Date.now()}` : `?v=${Date.now()}`); tried.push(base); try{ res = await fetch(url,{cache:'no-store'}); if(res.ok){ used=base; break; } }catch(err){} } if(!res || !res.ok){ throw new Error('Не удалось получить файл. Пробовал: ' + tried.join(', ')); } elFileUrl.textContent = (used||'') + ' (успешно)'; const buf = await res.arrayBuffer(); const wb = XLSX.read(buf, { type:'array' }); const sellerName = (wb.SheetNames||[]).find(n=>String(n).trim().toLowerCase()==='seller'); if(!sellerName) throw new Error("Не найден лист 'Seller' в Excel-файле."); const wsSeller = wb.Sheets[sellerName]; const jsonSeller = XLSX.utils.sheet_to_json(wsSeller, { defval:'' }); if(!jsonSeller.length) throw new Error("Лист 'Seller' пустой."); const cols = Object.keys(jsonSeller[0]||{}); const missing = REQUIRED_KEYS_SELLER.filter(k=>!cols.includes(k)); if(missing.length) throw new Error('Отсутствуют колонки (лист Seller): ' + missing.join(', ')); ROWS_SELLER = jsonSeller; const spName = (wb.SheetNames||[]).find(n=>String(n).trim().toLowerCase()==='salepoint'); ROWS_SP = spName ? XLSX.utils.sheet_to_json(wb.Sheets[spName], { defval:'' }) : []; const srName = (wb.SheetNames||[]).find(n=>String(n).trim().toLowerCase()==='sr'); ROWS_SR = srName ? XLSX.utils.sheet_to_json(wb.Sheets[srName], { defval:'' }) : []; setRowsCount(ROWS_SELLER.length, ROWS_SP.length, ROWS_SR.length); const terr = uniqSorted(ROWS_SELLER.map(r=>norm(r['TERRITORY']))); setOptions(selT, terr, terr.length? 'Выберите территорию':'Нет данных по TERRITORY'); selT.disabled = terr.length===0; showEmpty(); }catch(e){ console.error(e); showError((e&&e.message)||'Ошибка чтения файла.'); setOptions(selT, [], 'Сначала подключите файл'); setOptions(selP, [], 'Сначала выберите TERRITORY'); setOptions(selM, [], 'Сначала выберите POS NAME'); showEmpty(); } }
-
-  // === Авто-режим при загрузке страницы ===
-  if(location.protocol==='file:'){ elMode.textContent = 'Режим: локальный файл (file://)'; localBox.style.display=''; elFileUrl.textContent = '— (локальная загрузка)'; showEmpty(); }
-  else { elMode.textContent = 'Режим: сервер (fetch из корня)'; localBox.style.display='none'; elFileUrl.textContent = EXCEL_URLS.join(', '); loadExcelFromServer(); }
-
-  // Слушатели выбора
   selT.addEventListener('change', rebuildPos);
   selP.addEventListener('change', rebuildMobile);
   selM.addEventListener('change', onSelectChanged);
+
+  // === Загрузка из корня ===
+  async function loadExcel(){
+    showError(''); setRowsCount(0,0,0); ROWS_SELLER=[]; ROWS_SP=[]; ROWS_SR=[];
+    if (location.protocol === 'file:'){
+      showError('Эта версия читает только по http(s):// из корня домена. Положите seller.xlsx в / и откройте страницу с сервера.');
+      return;
+    }
+    try{
+      const res = await fetch(EXCEL_URL + `?v=${Date.now()}`, { cache:'no-store' });
+      if(!res.ok){
+        const txt = await res.text().catch(()=> '');
+        throw new Error(`Не удалось загрузить ${EXCEL_URL} (HTTP ${res.status}). ${txt ? 'Ответ: ' + txt.slice(0,200) : ''}`);
+      }
+      const buf = await res.arrayBuffer();
+      const wb  = XLSX.read(buf, { type:'array' });
+
+      const sellerName = (wb.SheetNames||[]).find(n=>String(n).trim().toLowerCase()==='seller');
+      if(!sellerName) throw new Error("Не найден лист 'Seller'.");
+      const wsSeller = wb.Sheets[sellerName];
+      const jsonSeller = XLSX.utils.sheet_to_json(wsSeller, { defval:'' });
+      if(!jsonSeller.length) throw new Error("Лист 'Seller' пустой.");
+      const cols = Object.keys(jsonSeller[0]||{});
+      const missing = REQUIRED_KEYS_SELLER.filter(k=>!cols.includes(k));
+      if(missing.length) throw new Error('Отсутствуют колонки (Seller): ' + missing.join(', '));
+      ROWS_SELLER = jsonSeller;
+
+      const spName = (wb.SheetNames||[]).find(n=>String(n).trim().toLowerCase()==='salepoint');
+      ROWS_SP = spName ? XLSX.utils.sheet_to_json(wb.Sheets[spName], { defval:'' }) : [];
+
+      const srName = (wb.SheetNames||[]).find(n=>String(n).trim().toLowerCase()==='sr');
+      ROWS_SR = srName ? XLSX.utils.sheet_to_json(wb.Sheets[srName], { defval:'' }) : [];
+
+      setRowsCount(ROWS_SELLER.length, ROWS_SP.length, ROWS_SR.length);
+
+      const terr = uniqSorted(ROWS_SELLER.map(r=>norm(r['TERRITORY'])));
+      setOptions(selT, terr, terr.length? 'Выберите территорию':'Нет данных по TERRITORY');
+      selT.disabled = terr.length===0;
+      setOptions(selP, [], 'Сначала выберите TERRITORY');
+      setOptions(selM, [], 'Сначала выберите POS NAME');
+      showEmpty();
+    }catch(e){
+      console.error(e);
+      showError(e.message || 'Ошибка чтения файла.');
+      setOptions(selT, [], 'Ожидаю файл…');
+      setOptions(selP, [], 'Сначала выберите TERRITORY');
+      setOptions(selM, [], 'Сначала выберите POS NAME');
+      showEmpty();
+    }
+  }
+
+  loadExcel();
 </script>
 </body>
 </html>
