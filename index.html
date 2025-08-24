@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Seller Viewer — TERRITORY → POS NAME → MOBILE_NUMBER</title>
+  <style>
+    :root{--bg:#fff;--fg:#111827;--muted:#6b7280;--border:#e5e7eb;--radius:16px;--shadow:0 1px 2px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.06);--space:14px}
+    html,body{height:100%}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,Noto Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;background:var(--bg);color:var(--fg)}
+    .container{max-width:720px;margin:0 auto;padding:12px}
+    header{position:sticky;top:0;background:rgba(255,255,255,.9);backdrop-filter:saturate(180%) blur(6px);border-bottom:1px solid var(--border)}
+    header .inner{display:flex;gap:10px;align-items:center;padding:12px}
+    h1{font-size:16px;margin:0;font-weight:700}
+    .card{border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);background:#fff}
+    .content{padding:var(--space)}
+    .row{display:grid;gap:var(--space)}
+    label{font-size:13px;color:var(--muted);margin-bottom:6px;display:block}
+    select,button{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:#fff;font-size:14px}
+    button{cursor:pointer}
+    .muted{color:var(--muted);font-size:12px}
+    .metrics{display:grid;grid-template-columns:1fr;gap:var(--space)}
+    @media(min-width:640px){.metrics{grid-template-columns:1fr 1fr}}
+    .metric{border:1px solid var(--border);border-radius:12px;padding:10px}
+    .metric .k{font-size:11px;color:var(--muted);margin-bottom:6px}
+    .metric .v{font-weight:700}
+    .divider{height:1px;background:var(--border);margin:8px 0}
+    .error{color:#b91c1c;font-size:13px;white-space:pre-line}
+  </style>
+</head>
+<body>
+<header>
+  <div class="inner container">
+    <div style="font-size:20px">📄</div>
+    <h1>Фильтр Seller (берёт файл из корня сайта)</h1>
+    <div class="muted" style="margin-left:auto">TERRITORY → POS NAME → MOBILE_NUMBER</div>
+  </div>
+</header>
+
+<main class="container">
+  <!-- Статус / управление -->
+  <section class="card">
+    <div class="content row">
+      <div class="muted">Источник файла: <code id="file-url"></code></div>
+      <div class="row" style="grid-template-columns:1fr 1fr">
+        <button id="reload">🔄 Перечитать файл</button>
+        <button id="reset">♻️ Сбросить фильтры</button>
+      </div>
+      <div class="muted" id="rows-count"></div>
+      <div class="error" id="error"></div>
+    </div>
+  </section>
+
+  <!-- Фильтры -->
+  <section class="card" style="margin-top:12px;">
+    <div class="content row">
+      <div class="row">
+        <label for="territory">TERRITORY</label>
+        <select id="territory" disabled>
+          <option value="">Ожидаю файл…</option>
+        </select>
+      </div>
+      <div class="row">
+        <label for="pos">POS NAME (торговая точка)</label>
+        <select id="pos" disabled>
+          <option value="">Сначала выберите TERRITORY</option>
+        </select>
+      </div>
+      <div class="row">
+        <label for="mobile">MOBILE_NUMBER</label>
+        <select id="mobile" disabled>
+          <option value="">Сначала выберите POS NAME</option>
+        </select>
+      </div>
+    </div>
+  </section>
+
+  <!-- Результат -->
+  <section class="card" style="margin-top:12px;">
+    <div class="content">
+      <div id="result-empty" class="muted">Выберите TERRITORY → POS NAME → MOBILE_NUMBER, чтобы увидеть данные.</div>
+      <div id="result" style="display:none;">
+        <div class="muted">MOBILE_NUMBER</div>
+        <div id="mobile-value" style="font-weight:700;font-size:16px;">—</div>
+        <div class="divider"></div>
+        <div class="metrics" id="metrics"></div>
+      </div>
+    </div>
+  </section>
+
+  <p class="muted" style="text-align:center;margin-top:10px;">
+    Положите Excel в корень сайта под именем <b>seller.xlsx</b>. Страница должна открываться по <b>http(s)://</b> (не <code>file://</code>).
+  </p>
+</main>
+
+<!-- XLSX парсер -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script>
+  // === НАСТРОЙКИ: абсолютный путь от КОРНЯ сайта ===
+  const EXCEL_URL = '/seller.xlsx'; // / = корень домена
+
+  // Метрики (точные имена колонок):
+  const METRIC_COLUMNS = [
+    'MOBILE_NUMBER','ТП Професіонал','UpSell 01-19.08.25','TV 01-19.08.25','USIM 01-19.08.25',
+    'Міграції 01-19.08.25','НКП 01-19.08.25','Sim on the fly 01-19.08.25','SuperPower 01-19.08.25',
+    'Реєстрації СП jet 01-19.08.25','EN 01-19.08.25','MNP 01-19.08.2025','Total операції JET',
+    'Активна тт','Реєстрації СП ussd 01-19.08.25'
+  ];
+  const REQUIRED_KEYS = ['TERRITORY','POS NAME',...METRIC_COLUMNS];
+
+  // Элементы
+  const elFileUrl = document.getElementById('file-url');
+  const elReload  = document.getElementById('reload');
+  const elReset   = document.getElementById('reset');
+  const elRows    = document.getElementById('rows-count');
+  const elErr     = document.getElementById('error');
+
+  const selT = document.getElementById('territory');
+  const selP = document.getElementById('pos');
+  const selM = document.getElementById('mobile');
+
+  const resEmpty = document.getElementById('result-empty');
+  const resBox   = document.getElementById('result');
+  const elMobile = document.getElementById('mobile-value');
+  const elMetrics= document.getElementById('metrics');
+
+  elFileUrl.textContent = EXCEL_URL;
+
+  let ROWS = [];
+
+  // Утилиты
+  const norm = v => (v==null?'':String(v)).trim();
+  const esc  = s => String(s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  const uniqSorted = arr => Array.from(new Set(arr.filter(Boolean))).sort((a,b)=>a.localeCompare(b,'uk',{numeric:true,sensitivity:'base'}));
+  const setOptions = (sel, values, ph) => { sel.innerHTML=['<option value="">'+esc(ph)+'</option>'].concat(values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`)).join(''); sel.disabled=values.length===0; };
+  const setRowsCount = n => elRows.textContent = n ? `Загружено строк: ${n.toLocaleString('uk-UA')}` : '';
+  const showError = msg => elErr.textContent = msg || '';
+
+  // Рендер результата
+  function showResult(row){
+    if(!row){ resBox.style.display='none'; resEmpty.style.display=''; return; }
+    resEmpty.style.display='none'; resBox.style.display='';
+    elMobile.textContent = norm(row['MOBILE_NUMBER']) || '—';
+    const keys = METRIC_COLUMNS.filter(k=>k!=='MOBILE_NUMBER');
+    elMetrics.innerHTML = keys.map(k=>`<div class="metric"><div class="k">${esc(k)}</div><div class="v">${esc(norm(row[k])||'0')}</div></div>`).join('');
+  }
+
+  function rebuildPos(){
+    const t = norm(selT.value);
+    const list = uniqSorted(ROWS.filter(r=>norm(r['TERRITORY'])===t).map(r=>norm(r['POS NAME'])));
+    setOptions(selP,list,t?'Выберите точку':'Сначала выберите TERRITORY');
+    setOptions(selM,[], 'Сначала выберите POS NAME');
+    showResult(null);
+  }
+
+  function rebuildMobile(){
+    const t = norm(selT.value), p = norm(selP.value);
+    const list = uniqSorted(ROWS.filter(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p).map(r=>norm(r['MOBILE_NUMBER'])));
+    setOptions(selM,list,p?'Выберите номер':'Сначала выберите POS NAME');
+    showResult(null);
+  }
+
+  function onSelectChanged(){
+    const t = norm(selT.value), p = norm(selP.value), m = norm(selM.value);
+    if(!t || !p || !m){ showResult(null); return; }
+    const row = ROWS.find(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p && norm(r['MOBILE_NUMBER'])===m) || null;
+    showResult(row);
+  }
+
+  selT.addEventListener('change', rebuildPos);
+  selP.addEventListener('change', rebuildMobile);
+  selM.addEventListener('change', onSelectChanged);
+  elReset.addEventListener('click', ()=>{
+    if(!ROWS.length) return;
+    setOptions(selT, uniqSorted(ROWS.map(r=>norm(r['TERRITORY']))), 'Выберите территорию');
+    setOptions(selP, [], 'Сначала выберите TERRITORY');
+    setOptions(selM, [], 'Сначала выберите POS NAME');
+    selT.value=selP.value=selM.value='';
+    showResult(null);
+  });
+  elReload.addEventListener('click', ()=>loadExcel(true));
+
+  // Загрузка из корня сайта
+  async function loadExcel(){
+    showError(''); setRowsCount(0); ROWS = [];
+
+    if (location.protocol === 'file:') {
+      showError('Страница открыта как file://\\nНужно открыть по http(s):// (через хостинг или локальный сервер).');
+      return;
+    }
+
+    try{
+      const url = EXCEL_URL + (EXCEL_URL.includes('?') ? `&v=${Date.now()}` : `?v=${Date.now()}`); // кэш-бастер
+      const res = await fetch(url, { cache: 'no-store' });
+      if(!res.ok){
+        const txt = await res.text().catch(()=> '');
+        throw new Error(`Не удалось загрузить ${EXCEL_URL} (HTTP ${res.status}). ${txt ? 'Ответ: ' + txt.slice(0,200) : ''}`);
+      }
+      const buf = await res.arrayBuffer();
+      const wb  = XLSX.read(buf, { type:'array' });
+
+      const seller = (wb.SheetNames||[]).find(n=>String(n).trim().toLowerCase()==='seller');
+      if(!seller) throw new Error("Не найден лист 'Seller' в Excel-файле.");
+
+      const ws = wb.Sheets[seller];
+      const json = XLSX.utils.sheet_to_json(ws, { defval:'' });
+      if(!json.length) throw new Error("Лист 'Seller' пустой.");
+
+      const cols = Object.keys(json[0]||{});
+      const missing = REQUIRED_KEYS.filter(k=>!cols.includes(k));
+      if(missing.length) throw new Error('Отсутствуют колонки: ' + missing.join(', '));
+
+      ROWS = json;
+      setRowsCount(ROWS.length);
+
+      const terr = uniqSorted(ROWS.map(r=>norm(r['TERRITORY'])));
+      setOptions(selT, terr, terr.length? 'Выберите территорию':'Нет данных по TERRITORY');
+      selT.disabled = terr.length===0;
+      setOptions(selP, [], 'Сначала выберите TERRITORY');
+      setOptions(selM, [], 'Сначала выберите POS NAME');
+      showResult(null);
+    }catch(e){
+      console.error(e);
+      showError(e.message || 'Ошибка чтения файла. Проверьте путь, доступ и домен/протокол.');
+      setOptions(selT, [], 'Ожидаю файл…');
+      setOptions(selP, [], 'Сначала выберите TERRITORY');
+      setOptions(selM, [], 'Сначала выберите POS NAME');
+      showResult(null);
+    }
+  }
+
+  // Автозагрузка при открытии
+  loadExcel();
+</script>
+</body>
+</html>
