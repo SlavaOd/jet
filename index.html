@@ -3,69 +3,56 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Seller / SalePoint / SR — локально и с сервера</title>
+  <title>Seller / SalePoint / SR — текущий + прошлый (из корня)</title>
   <style>
     :root{--bg:#fff;--fg:#111827;--muted:#6b7280;--border:#e5e7eb;--radius:16px;--shadow:0 1px 2px rgba(0,0,0,.06),0 4px 16px rgba(0,0,0,.06);--space:14px}
     html,body{height:100%}body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,Noto Sans,Ubuntu,Cantarell,"Helvetica Neue",sans-serif;background:var(--bg);color:var(--fg)}
-    .container{max-width:820px;margin:0 auto;padding:12px}
+    .container{max-width:860px;margin:0 auto;padding:12px}
     header{position:sticky;top:0;background:rgba(255,255,255,.9);backdrop-filter:saturate(180%) blur(6px);border-bottom:1px solid var(--border)}
     header .inner{display:flex;gap:10px;align-items:center;padding:12px}
     h1{font-size:16px;margin:0;font-weight:700}
     .card{border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);background:#fff}
     .content{padding:var(--space)}
     .row{display:grid;gap:var(--space)}
-    label{font-size:13px;color:var(--muted);margin-bottom:6px;display:block}
-    select,button,input[type=file]{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:#fff;font-size:14px}
-    button{cursor:pointer}
+    select,button{width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--border);background:#fff;font-size:14px}
     .muted{color:var(--muted);font-size:12px}
     .metrics{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:var(--space)}
     @media(max-width:420px){.metrics{grid-template-columns:1fr}}
     .metric{border:1px solid var(--border);border-radius:12px;padding:10px}
     .metric .k{font-size:11px;color:var(--muted);margin-bottom:6px}
     .metric .v{font-weight:700}
+    .metric .mini{margin-top:4px;font-size:11px;color:var(--muted)}
+    .delta-up{color:#059669;font-weight:600}
+    .delta-down{color:#b91c1c;font-weight:600}
     .divider{height:1px;background:var(--border);margin:8px 0}
     .error{color:#b91c1c;font-size:13px;white-space:pre-line}
     .title{font-size:13px;font-weight:700;margin-bottom:6px}
-    .drop{border:2px dashed var(--border);border-radius:12px;padding:16px;text-align:center}
-    .drop.drag{border-color:#94a3b8;background:#f8fafc}
-    /* Подсветка активной ТТ */
     .metric.active-tt{background:#ecfdf5;border-color:#10b981}
     .pill{display:inline-block;padding:2px 8px;border-radius:999px;background:#ecfdf5;color:#065f46;font-size:11px;border:1px solid #10b981;margin-left:6px}
-    .mode{font-size:12px;padding:6px 10px;border:1px dashed var(--border);border-radius:10px}
+    .status{font-size:12px;padding:6px 10px;border:1px dashed var(--border);border-radius:10px}
   </style>
 </head>
 <body>
 <header>
   <div class="inner container">
     <div style="font-size:20px">📄</div>
-    <h1>Фильтр Seller / SalePoint / SR — локально и с сервера</h1>
+    <h1>Фильтр Seller / SalePoint / SR — файл(ы) из корня</h1>
     <div class="muted" style="margin-left:auto">TERRITORY → POS NAME → MOBILE_NUMBER</div>
   </div>
 </header>
 
 <main class="container">
-  <!-- Источник/режим -->
+  <!-- Статус/кнопки -->
   <section class="card">
     <div class="content row">
-      <div class="mode" id="mode-text">Режим: —</div>
-      <div class="muted">Источник файла: <code id="file-url"></code></div>
+      <div class="status" id="stat">Загружаю: /seller.xlsx (+ /seller_prev.xlsx если есть)…</div>
+      <div class="muted">Текущий: <code>/seller.xlsx</code> · Прошлый: <code>/seller_prev.xlsx</code> (необязательно)</div>
       <div class="row" style="grid-template-columns:1fr 1fr">
-        <button id="reload">🔄 Перечитать файл</button>
+        <button id="reload">🔄 Перечитать файлы</button>
         <button id="reset">♻️ Сбросить фильтры</button>
       </div>
       <div class="muted" id="rows-count"></div>
       <div class="error" id="error"></div>
-    </div>
-  </section>
-
-  <!-- Загрузка локального файла (показывается если file:// или по кнопке) -->
-  <section class="card" id="local-box" style="margin-top:12px;display:none;">
-    <div class="content row">
-      <div class="row">
-        <label for="file">Локальная проверка: выберите Excel (*.xlsx) с листами <b>Seller</b> (обязательно), <b>SalePoint</b> (по точке) и <b>SR</b> (по территории). Файл не загружается — читается в браузере.</label>
-        <input id="file" type="file" accept=".xlsx" />
-        <div id="drop" class="drop muted">или перетащите файл сюда</div>
-      </div>
     </div>
   </section>
 
@@ -75,17 +62,17 @@
       <div class="row">
         <label for="territory">TERRITORY</label>
         <select id="territory" disabled>
-          <option value="">Сначала подключите файл</option>
+          <option value="">Загружаю файл…</option>
         </select>
       </div>
       <div class="row">
-        <label for="pos">POS NAME (торговая точка)</label>
+        <label for="pos">POS NAME — ORG ID</label>
         <select id="pos" disabled>
           <option value="">Сначала выберите TERRITORY</option>
         </select>
       </div>
       <div class="row">
-        <label for="mobile">MOBILE_NUMBER</label>
+        <label for="mobile">MOBILE_NUMBER — First Last</label>
         <select id="mobile" disabled>
           <option value="">Сначала выберите POS NAME</option>
         </select>
@@ -93,31 +80,31 @@
     </div>
   </section>
 
-  <!-- Свод по территории (SR + агрегаты по операциям) -->
+  <!-- Свод по территории -->
   <section class="card" style="margin-top:12px;">
     <div class="content">
       <div id="result-ter" style="display:none;">
-        <div class="title">Свод по территории (SR)</div>
+        <div class="title">Свод по территории (SR, текущий ↔ прошлый)</div>
         <div class="muted" id="ter-caption"></div>
         <div class="metrics" id="metrics-ter-sr"></div>
         <div class="divider"></div>
-        <div class="title">Сумма операций по территории (по точкам)</div>
+        <div class="title">Сумма операций по территории</div>
         <div class="metrics" id="metrics-ter-ops"></div>
       </div>
     </div>
   </section>
 
-  <!-- Результаты по точке и по номеру -->
+  <!-- Свод по точке и детали по номеру -->
   <section class="card" style="margin-top:12px;">
     <div class="content">
-      <div id="result-empty" class="muted">Подключите файл → выберите TERRITORY (свод SR + суммы операций). Затем выберите POS NAME (свод точки). После выбора номера — детали по номеру (Seller).</div>
+      <div id="result-empty" class="muted">Загрузились файлы → выберите TERRITORY (свод SR + суммы с мелкими пометками прошлого месяца). Затем POS NAME — свод по точке. После номера — детали.</div>
 
       <div id="result-pos" style="display:none;">
         <div class="title">ИТОГО по торговой точке (SalePoint) <span id="pos-pill" class="pill" style="display:none">активна</span></div>
         <div class="muted" id="pos-caption"></div>
         <div class="divider"></div>
         <div class="metrics" id="metrics-pos"></div>
-        <div class="muted" id="pos-warning" style="display:none;margin-top:8px;">Для выбранной точки нет данных на листе <b>SalePoint</b>. Показаны суммы по номерам (из Seller).</div>
+        <div class="muted" id="pos-warning" style="display:none;margin-top:8px;">Нет строки в <b>SalePoint</b> текущего — показаны суммы (Seller). Дельты — по прошлому.</div>
       </div>
 
       <div id="result-num" style="display:none;">
@@ -131,47 +118,111 @@
   </section>
 </main>
 
-<!-- XLSX парсер -->
+<!-- XLSX -->
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
-  // === Пути к файлу на СЕРВЕРЕ ===
-  // Пробуем по очереди: /seller.xlsx (корень домена), seller.xlsx (текущая папка, например GitHub Pages /repo/)
-  const EXCEL_URLS = ['/seller.xlsx', 'seller.xlsx'];
+  // === пути в корне ===
+  const ROOT_CUR  = '/seller.xlsx';
+  const ROOT_PREV = '/seller_prev.xlsx';
 
-  // Порядок метрик: после MOBILE_NUMBER → 2) Total JET → 3) Реєстрації СП jet → 4) Реєстрації СП ussd → далее остальные
-  const METRIC_COLUMNS = [
+  // Канонический порядок (без дат в конце)
+  const CANON_ORDER = [
     'MOBILE_NUMBER',
     'Total операції JET',
-    'Реєстрації СП jet 01-19.08.25',
-    'Реєстрації СП ussd 01-19.08.25', // ← перемещено на 4-е место
+    'Total Strong',                 // во 2-й позиции для блока точки (после JET)
+    'Реєстрації СП jet',
+    'Реєстрації СП ussd',
     'ТП Професіонал',
-    'UpSell 01-19.08.25',
-    'TV 01-19.08.25',
-    'USIM 01-19.08.25',
-    'Міграції 01-19.08.25',
-    'НКП 01-19.08.25',
-    'Sim on the fly 01-19.08.25',
-    'SuperPower 01-19.08.25',
-    'EN 01-19.08.25',
-    'MNP 01-19.08.2025',
+    'UpSell','TV','USIM','Міграції','НКП','Sim on the fly','SuperPower','EN','MNP',
     'Активна тт'
   ];
-  const REQUIRED_KEYS_SELLER = ['TERRITORY','POS NAME',...METRIC_COLUMNS];
-  const OPS_KEYS = METRIC_COLUMNS.filter(k => k !== 'MOBILE_NUMBER' && k !== 'Активна тт');
+  const OPS_CANON = CANON_ORDER.filter(k => k!=='MOBILE_NUMBER' && k!=='Активна тт');
 
-  // Доп. поля для подписей
-  const COL_ORG_ID = 'ORG ID';
-  const COL_FIRST_NAME = 'First Name';
-  const COL_LAST_NAME  = 'Last Name';
+  // Колонки, где меняется дата — ищем по префиксу
+  const PREFIXED = new Map([
+    ['Реєстрації СП jet','Реєстрації СП jet'],
+    ['Реєстрації СП ussd','Реєстрації СП ussd'],
+    ['UpSell','UpSell'],
+    ['TV','TV'],
+    ['USIM','USIM'],
+    ['Міграції','Міграції'],
+    ['НКП','НКП'],
+    ['Sim on the fly','Sim on the fly'],
+    ['SuperPower','SuperPower'],
+    ['EN','EN'],
+    ['MNP','MNP'],
+  ]);
+  // Статичные — точное совпадение
+  const STATIC_EXACT = new Set([
+    'MOBILE_NUMBER','Total операції JET','Total Strong','ТП Професіонал','Активна тт',
+    'TERRITORY','POS NAME','ORG ID','First Name','Last Name'
+  ]);
 
-  // Элементы
-  const elMode  = document.getElementById('mode-text');
-  const elFileUrl = document.getElementById('file-url');
-  const elReload  = document.getElementById('reload');
-  const elReset   = document.getElementById('reset');
-  const elRows    = document.getElementById('rows-count');
-  const elErr     = document.getElementById('error');
-  const localBox  = document.getElementById('local-box');
+  // ===== утилиты =====
+  const norm = v => (v==null?'':String(v)).trim();
+  const esc  = s => String(s).replace(/[&<>\"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
+  const uniqSorted = arr => Array.from(new Set(arr.filter(Boolean))).sort((a,b)=>a.localeCompare(b,'uk',{numeric:true,sensitivity:'base'}));
+  const toNum = v => { const s = norm(v).replace(/\s+/g,'').replace(',','.'); const x = parseFloat(s); return isFinite(x)?x:0; };
+  const fmtInt = x => (Math.round(x)).toLocaleString('uk-UA');
+  const fmtPercent = v => { const s=norm(v); if(!s) return '0%'; if(/%/.test(s)) return s; const n=toNum(s); const val = n<=1? n*100 : n; return `${Math.round(val)}%`; };
+  const rxEscape = s => s.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+
+  function buildMap(headers){
+    const H=headers.slice(); const map={};
+    const ilook = name => H.find(h => String(h).toLowerCase()===String(name).toLowerCase()) || null;
+    STATIC_EXACT.forEach(k=>{ const h=ilook(k); if(h) map[k]=h; });
+    PREFIXED.forEach((prefix,canon)=>{
+      const rx=new RegExp('^'+rxEscape(prefix)+'\\b','i');
+      const m = H.filter(h=>rx.test(String(h)));
+      if(m.length) map[canon] = m.sort((a,b)=>String(b).length-String(a).length)[0];
+    });
+    return map;
+  }
+  const invertMap = m => Object.fromEntries(Object.entries(m).map(([k,v])=>[v,k]));
+
+  function labelsFromMap(map, {excludeMobile=false, insertStrongSecond=false}={}){
+    const order = CANON_ORDER.filter(k=>!excludeMobile || k!=='MOBILE_NUMBER');
+    let labels = order.map(k=>map[k]).filter(Boolean);
+    if(insertStrongSecond){
+      const strong = map['Total Strong'];
+      const idxJet = labels.indexOf(map['Total операції JET']);
+      if(strong && idxJet!==-1){ labels = labels.filter(l=>l!==strong); labels.splice(idxJet+1,0,strong); }
+    }
+    return labels;
+  }
+
+  function sumByCanon(rows, map, canonKeys){
+    const sums = Object.fromEntries(canonKeys.map(k=>[k,0]));
+    rows.forEach(r=> canonKeys.forEach(k=>{
+      const col = map[k]; if(col) sums[k]+=toNum(r[col]);
+    }));
+    return sums;
+  }
+
+  function deltaTag(cur, prev){
+    if(prev==null || prev==='') return '';
+    const c=toNum(cur), p=toNum(prev), d=c-p;
+    if(!isFinite(d) || d===0) return `<span class="mini">было: ${esc(prev)}</span>`;
+    const cls = d>0?'delta-up':'delta-down'; const arrow = d>0?'▲':'▼';
+    return `<span class="mini">было: ${esc(prev)} · <span class="${cls}">${arrow} ${esc(fmtInt(Math.abs(d)))}</span></span>`;
+  }
+
+  function renderByLabelsWithPrev(container, labelsCur, getCur, findPrevByCanon, revCurMap, highlightActive=false){
+    container.innerHTML = labelsCur.map(label=>{
+      const curVal = getCur(label);
+      const canon = revCurMap[label] || label;
+      const prevVal = findPrevByCanon(canon);
+      const isActive = highlightActive && canon==='Активна тт' && (norm(curVal)==='1'||norm(curVal)==='true'||norm(curVal)==='1.0');
+      return `<div class="metric${isActive?' active-tt':''}"><div class="k">${esc(label)}</div><div class="v">${esc(curVal ?? '0')}</div>${deltaTag(curVal, prevVal)}</div>`;
+    }).join('');
+  }
+
+  // ===== DOM =====
+  const elErr  = document.getElementById('error');
+  const elStat = document.getElementById('stat');
+  const elRows = document.getElementById('rows-count');
+  const btnReload = document.getElementById('reload');
+  const btnReset  = document.getElementById('reset');
 
   const selT = document.getElementById('territory');
   const selP = document.getElementById('pos');
@@ -179,7 +230,7 @@
 
   const terBox = document.getElementById('result-ter');
   const terCap = document.getElementById('ter-caption');
-  const terSr = document.getElementById('metrics-ter-sr');
+  const terSr  = document.getElementById('metrics-ter-sr');
   const terOps = document.getElementById('metrics-ter-ops');
 
   const resEmpty = document.getElementById('result-empty');
@@ -187,75 +238,280 @@
   const posCap   = document.getElementById('pos-caption');
   const posWarn  = document.getElementById('pos-warning');
   const posMetrics = document.getElementById('metrics-pos');
-  const posPill = document.getElementById('pos-pill');
+  const posPill  = document.getElementById('pos-pill');
 
   const numBox   = document.getElementById('result-num');
   const elMobile = document.getElementById('mobile-value');
   const numMetrics = document.getElementById('metrics-num');
 
-  const inpFile = document.getElementById('file');
-  const drop = document.getElementById('drop');
+  // ===== Данные =====
+  const DS = { cur:{}, prev:{} };
 
-  // Данные
-  let ROWS_SELLER = []; let ROWS_SP = []; let ROWS_SR = [];
-
-  // Утилиты
-  const norm = v => (v==null?'':String(v)).trim();
-  const esc  = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#039;'}[c]));
-  const uniqSorted = arr => Array.from(new Set(arr.filter(Boolean))).sort((a,b)=>a.localeCompare(b,'uk',{numeric:true,sensitivity:'base'}));
-  const setOptions = (sel, values, ph) => { sel.innerHTML=['<option value="">'+esc(ph)+'</option>'].concat(values.map(v=>`<option value="${esc(v)}">${esc(v)}</option>`)).join(''); sel.disabled=values.length===0; };
-  const setOptionsObjects = (sel, items, ph) => { sel.innerHTML=['<option value="">'+esc(ph)+'</option>'].concat(items.map(o=>`<option value="${esc(o.value)}">${esc(o.label)}</option>`)).join(''); sel.disabled=items.length===0; };
-  const setRowsCount = (nSeller,nSP,nSR) => elRows.textContent = (nSeller?`Seller: ${nSeller.toLocaleString('uk-UA')}`:'') + (nSP?` | SalePoint: ${nSP.toLocaleString('uk-UA')}`:'') + (nSR?` | SR: ${nSR.toLocaleString('uk-UA')}`:'');
+  function setRowsCount(){
+    const c=DS.cur, p=DS.prev;
+    const curPart = (c.SELLER?`Seller[cur]: ${c.SELLER.length.toLocaleString('uk-UA')}`:'') +
+                    (c.SP?` | SalePoint[cur]: ${c.SP.length.toLocaleString('uk-UA')}`:'') +
+                    (c.SR?` | SR[cur]: ${c.SR.length.toLocaleString('uk-UA')}`:'');
+    const prevPart = (p.SELLER||p.SP||p.SR)? ` — prev: ` + [
+      p.SELLER && `Seller: ${p.SELLER.length.toLocaleString('uk-UA')}`,
+      p.SP && `SalePoint: ${p.SP.length.toLocaleString('uk-UA')}`,
+      p.SR && `SR: ${p.SR.length.toLocaleString('uk-UA')}`,
+    ].filter(Boolean).join(' | ') : '';
+    elRows.textContent = (curPart+prevPart).trim();
+  }
   const showError = msg => elErr.textContent = msg || '';
-  const toNum = v => { const s = norm(v).replace(/\s+/g,'').replace(',', '.'); const x = parseFloat(s); return isFinite(x)? x : 0; };
-  const fmtInt = x => (Math.round(x)).toLocaleString('uk-UA');
-  const fmtPercent = v => { const s = norm(v); if(!s) return '0%'; if(/%/.test(s)) return s; const n = toNum(s); if(!isFinite(n)) return s; const val = n <= 1 ? n * 100 : n; return `${Math.round(val)}%`; };
-
-  function sumOps(rows){ const sums = Object.fromEntries(OPS_KEYS.map(k=>[k,0])); rows.forEach(r=>{ OPS_KEYS.forEach(k=> sums[k] += toNum(r[k])); }); return sums; }
-  function sumFromSellerByPos(t,p){ const rows = ROWS_SELLER.filter(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p); return sumOps(rows); }
-  function sumOpsByTerritory(t){
-    const rowsSP = ROWS_SP.filter(r=>norm(r['TERRITORY'])===t);
-    const rowsSL = ROWS_SELLER.filter(r=>norm(r['TERRITORY'])===t);
-    const sums = {}; OPS_KEYS.forEach(k=>{ let total=0; if (rowsSP.length && rowsSP.some(r => r.hasOwnProperty(k) && norm(r[k])!=='')) { rowsSP.forEach(r=> total += toNum(r[k])); } else { rowsSL.forEach(r=> total += toNum(r[k])); } sums[k]=total; }); return sums;
-  }
-
-  function renderMetrics(container, row, skipMobile=true, fallbackFn=null){
-    const keys = METRIC_COLUMNS.filter(k => !skipMobile || k !== 'MOBILE_NUMBER');
-    container.innerHTML = keys.map(k => { let v = row ? norm(row[k]) : ''; if((v === '' || v == null) && typeof fallbackFn === 'function'){ const fb = fallbackFn(k); if(fb != null) v = String(fb); } const isActive = (k === 'Активна тт') && (v === '1' || v === '1.0' || v === 'true'); return `<div class="metric${isActive? ' active-tt':''}"><div class="k">${esc(k)}</div><div class="v">${esc(v || '0')}</div></div>`; }).join('');
-  }
 
   function showEmpty(){ resEmpty.style.display=''; posBox.style.display='none'; numBox.style.display='none'; terBox.style.display='none'; }
-  function showTerritory(t){ if(!t){ terBox.style.display='none'; return; } terCap.textContent = t; terSr.innerHTML=''; const srRow = ROWS_SR.find(r=>norm(r['TERRITORY'])===t) || null; if(srRow){ const cards = [['План Total', norm(srRow['План Total'])], ['Факт Total', norm(srRow['Факт Total'])], ['Виконання', fmtPercent(srRow['Виконання'])]].map(([k,v])=>`<div class="metric"><div class="k">${esc(k)}</div><div class="v">${esc(v||'0')}</div></div>`).join(''); terSr.innerHTML = cards; } else { terSr.innerHTML = `<div class="muted">Нет листа SR или записи по территории.</div>`; } const sums = sumOpsByTerritory(t); terOps.innerHTML = Object.keys(sums).map(k=>`<div class="metric"><div class="k">${esc(k)}</div><div class="v">${esc(fmtInt(sums[k]))}</div></div>`).join(''); terBox.style.display=''; }
 
-  function showPos(t,p){ terBox.style.display='none'; resEmpty.style.display='none'; posBox.style.display=''; numBox.style.display='none'; posCap.textContent = `${t || '—'} • ${p || '—'}`; const spRow = ROWS_SP.find(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p) || null; const active = (spRow && (norm(spRow['Активна тт'])==='1' || norm(spRow['Активна тт'])==='true')) || ROWS_SELLER.some(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p && (norm(r['Активна тт'])==='1' || norm(r['Активна тт'])==='true')); posPill.style.display = active? '' : 'none'; const fbSums = sumFromSellerByPos(t,p); renderMetrics(posMetrics, spRow, true, (key)=> key in fbSums ? fmtInt(fbSums[key]) : null); posWarn.style.display = spRow ? 'none' : ''; }
-  function showNum(row){ if (!row){ return; } resEmpty.style.display='none'; posBox.style.display='none'; numBox.style.display=''; elMobile.textContent = norm(row['MOBILE_NUMBER']) || '—'; renderMetrics(numMetrics, row, true); }
+  // === Рендеры ===
+  function showTerritory(t){
+    if(!t){ terBox.style.display='none'; return; }
+    const {cur,prev} = DS; terCap.textContent = t;
 
-  function rebuildPos(){ const t = norm(selT.value); const list = uniqSorted(ROWS_SELLER.filter(r=>norm(r['TERRITORY'])===t).map(r=>norm(r['POS NAME']))); const activeSet = new Set(); (ROWS_SP.length? ROWS_SP : ROWS_SELLER).forEach(r=>{ if(norm(r['TERRITORY'])===t && (norm(r['Активна тт'])==='1' || norm(r['Активна тт'])==='true')) activeSet.add(norm(r['POS NAME'])); }); const items = list.map(p=>{ let org=''; const sp = ROWS_SP.find(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p); if(sp && sp.hasOwnProperty('ORG ID')) org = norm(sp['ORG ID']); if(!org){ const sl = ROWS_SELLER.find(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p); if(sl && sl.hasOwnProperty('ORG ID')) org = norm(sl['ORG ID']); } const label = (activeSet.has(p)? '🟢 ' : '') + p + (org? ' — ' + org : ''); return { value:p, label }; }); setOptionsObjects(selP, items, t? 'Выберите точку':'Сначала выберите TERRITORY'); selM.innerHTML = '<option value="">Сначала выберите POS NAME</option>'; selM.disabled = true; if(t){ showTerritory(t); } else { terBox.style.display='none'; } numBox.style.display='none'; posBox.style.display='none'; resEmpty.style.display='none'; }
+    // SR
+    const srCur  = (cur.SR||[]).find(r=>norm(r['TERRITORY'])===t) || null;
+    const srPrev = (prev.SR||[]).find(r=>norm(r['TERRITORY'])===t) || null;
+    terSr.innerHTML = [
+      ['План Total', srCur && srCur['План Total'], srPrev && srPrev['План Total']],
+      ['Факт Total', srCur && srCur['Факт Total'], srPrev && srPrev['Факт Total']],
+      ['Виконання',  srCur && srCur['Виконання'] && fmtPercent(srCur['Виконання']),
+                     srPrev && srPrev['Виконання'] && fmtPercent(srPrev['Виконання'])],
+    ].map(([k,cv,pv])=>`<div class="metric"><div class="k">${esc(k)}</div><div class="v">${esc(cv??'0')}</div>${deltaTag(cv,pv)}</div>`).join('');
 
-  function rebuildMobile(){ const t = norm(selT.value), p = norm(selP.value); terBox.style.display='none'; const map = new Map(); ROWS_SELLER.forEach(r=>{ if(norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p){ const num = norm(r['MOBILE_NUMBER']); if(!num) return; const fn = r.hasOwnProperty('First Name') ? norm(r['First Name']) : ''; const ln = r.hasOwnProperty('Last Name') ? norm(r['Last Name']) : ''; const name = (fn || ln) ? (`${fn} ${ln}`.trim()) : ''; const label = name ? `${num} — ${name}` : num; if(!map.has(num)) map.set(num, { value:num, label }); }}); const items = Array.from(map.values()).sort((a,b)=>a.label.localeCompare(b.label,'uk',{numeric:true})); setOptionsObjects(selM, items, p? 'Выберите номер':'Сначала выберите POS NAME'); if(p){ showPos(t,p); } else { posBox.style.display='none'; } }
+    // Суммы операций
+    const rowsSPcur = (cur.SP||[]).filter(r=>norm(r[cur.mapSP['TERRITORY']||'TERRITORY'])===t);
+    const rowsSLcur = (cur.SELLER||[]).filter(r=>norm(r[cur.mapSeller['TERRITORY']])===t);
+    const sumsCur = {};
+    OPS_CANON.forEach(k=>{
+      const colSP=cur.mapSP[k], colSL=cur.mapSeller[k];
+      let total=0; const useSP = colSP && rowsSPcur.some(r=>norm(r[colSP])!=='');
+      if(useSP) rowsSPcur.forEach(r=> total += toNum(r[colSP])); else if(colSL) rowsSLcur.forEach(r=> total += toNum(r[colSL]));
+      sumsCur[k]=total;
+    });
 
-  function onSelectChanged(){ const t = norm(selT.value), p = norm(selP.value), m = norm(selM.value); if(!t || !p || !m) return; const row = ROWS_SELLER.find(r=>norm(r['TERRITORY'])===t && norm(r['POS NAME'])===p && norm(r['MOBILE_NUMBER'])===m) || null; showNum(row); }
+    let sumsPrev=null;
+    if(prev && prev.SELLER){
+      const rowsSPprev=(prev.SP||[]).filter(r=>norm(r[prev.mapSP['TERRITORY']||'TERRITORY'])===t);
+      const rowsSLprev=(prev.SELLER||[]).filter(r=>norm(r[prev.mapSeller['TERRITORY']])===t);
+      sumsPrev={};
+      OPS_CANON.forEach(k=>{
+        const colSP=prev.mapSP[k], colSL=prev.mapSeller[k]; let total=0;
+        const useSP = colSP && rowsSPprev.some(r=>norm(r[colSP])!=='');
+        if(useSP) rowsSPprev.forEach(r=> total += toNum(r[colSP])); else if(colSL) rowsSLprev.forEach(r=> total += toNum(r[colSL]));
+        sumsPrev[k]=total;
+      });
+    }
 
-  elReset.addEventListener('click', ()=>{ if(!ROWS_SELLER.length) return; setOptions(selT, uniqSorted(ROWS_SELLER.map(r=>norm(r['TERRITORY']))), 'Выберите территорию'); setOptions(selP, [], 'Сначала выберите TERRITORY'); setOptions(selM, [], 'Сначала выберите POS NAME'); selT.value=selP.value=selM.value=''; showEmpty(); });
-  elReload.addEventListener('click', ()=>{ if(location.protocol==='file:'){ elMode.textContent='Режим: локальный файл'; localBox.style.display=''; showEmpty(); } else { loadExcelFromServer(true); } });
+    const labelsTer = OPS_CANON.map(k=>cur.mapSP[k] || cur.mapSeller[k]).filter(Boolean);
+    terOps.innerHTML = labelsTer.map(label=>{
+      const canon = cur.revSP[label] || cur.revSeller[label] || label;
+      const cv = sumsCur[canon] ?? 0; const pv = sumsPrev? sumsPrev[canon] : null;
+      return `<div class="metric"><div class="k">${esc(label)}</div><div class="v">${esc(fmtInt(cv))}</div>${deltaTag(cv,pv)}</div>`;
+    }).join('');
 
-  // === Загрузка локального файла ===
-  async function parseFile(file){ showError(''); setRowsCount(0,0,0); ROWS_SELLER=[]; ROWS_SP=[]; ROWS_SR=[]; try{ const buf = await file.arrayBuffer(); const wb = XLSX.read(buf, { type:'array' }); const sellerName = (wb.SheetNames||[]).find(n=>String(n).trim().toLowerCase()==='seller'); if(!sellerName) throw new Error("Не найден лист 'Seller' в Excel-файле."); const wsSeller = wb.Sheets[sellerName]; const jsonSeller = XLSX.utils.sheet_to_json(wsSeller, { defval:'' }); if(!jsonSeller.length) throw new Error("Лист 'Seller' пустой."); const cols = Object.keys(jsonSeller[0]||{}); const missing = REQUIRED_KEYS_SELLER.filter(k=>!cols.includes(k)); if(missing.length) throw new Error('Отсутствуют колонки (лист Seller): ' + missing.join(', ')); ROWS_SELLER = jsonSeller; const spName = (wb.SheetNames||[]).find(n=>String(n).trim().toLowerCase()==='salepoint'); ROWS_SP = spName ? XLSX.utils.sheet_to_json(wb.Sheets[spName], { defval:'' }) : []; const srName = (wb.SheetNames||[]).find(n=>String(n).trim().toLowerCase()==='sr'); ROWS_SR = srName ? XLSX.utils.sheet_to_json(wb.Sheets[srName], { defval:'' }) : []; setRowsCount(ROWS_SELLER.length, ROWS_SP.length, ROWS_SR.length); const terr = uniqSorted(ROWS_SELLER.map(r=>norm(r['TERRITORY']))); setOptions(selT, terr, terr.length? 'Выберите территорию':'Нет данных по TERRITORY'); selT.disabled = terr.length===0; showEmpty(); }catch(e){ console.error(e); showError(e.message || 'Не удалось прочитать файл.'); setOptions(selT, [], 'Сначала подключите файл'); setOptions(selP, [], 'Сначала выберите TERRITORY'); setOptions(selM, [], 'Сначала выберите POS NAME'); showEmpty(); } }
+    terBox.style.display='';
+  }
 
-  // Обработчики локальной загрузки
-  if(inpFile){ inpFile.addEventListener('change', e=>{ const f=e.target.files&&e.target.files[0]; if(f) parseFile(f); }); ['dragenter','dragover'].forEach(ev=>drop && drop.addEventListener(ev, e=>{e.preventDefault(); drop.classList.add('drag');})); ['dragleave','drop'].forEach(ev=>drop && drop.addEventListener(ev, e=>{e.preventDefault(); drop.classList.remove('drag');})); drop && drop.addEventListener('drop', e=>{ const f=e.dataTransfer.files&&e.dataTransfer.files[0]; if(f) parseFile(f); }); }
+  function showPos(t,p){
+    const {cur,prev} = DS;
+    terBox.style.display='none'; resEmpty.style.display='none'; posBox.style.display=''; numBox.style.display='none';
+    posCap.textContent = `${t||'—'} • ${p||'—'}`;
 
-  // === Загрузка с сервера ===
-  async function loadExcelFromServer(manual=false){ showError(''); setRowsCount(0,0,0); ROWS_SELLER=[]; ROWS_SP=[]; ROWS_SR=[]; const tried=[]; try{ let res=null, used=null; for(const base of EXCEL_URLS){ const url = base + (base.includes('?') ? `&v=${Date.now()}` : `?v=${Date.now()}`); tried.push(base); try{ res = await fetch(url,{cache:'no-store'}); if(res.ok){ used=base; break; } }catch(err){} } if(!res || !res.ok){ throw new Error('Не удалось получить файл. Пробовал: ' + tried.join(', ')); } elFileUrl.textContent = (used||'') + ' (успешно)'; const buf = await res.arrayBuffer(); const wb = XLSX.read(buf, { type:'array' }); const sellerName = (wb.SheetNames||[]).find(n=>String(n).trim().toLowerCase()==='seller'); if(!sellerName) throw new Error("Не найден лист 'Seller' в Excel-файле."); const wsSeller = wb.Sheets[sellerName]; const jsonSeller = XLSX.utils.sheet_to_json(wsSeller, { defval:'' }); if(!jsonSeller.length) throw new Error("Лист 'Seller' пустой."); const cols = Object.keys(jsonSeller[0]||{}); const missing = REQUIRED_KEYS_SELLER.filter(k=>!cols.includes(k)); if(missing.length) throw new Error('Отсутствуют колонки (лист Seller): ' + missing.join(', ')); ROWS_SELLER = jsonSeller; const spName = (wb.SheetNames||[]).find(n=>String(n).trim().toLowerCase()==='salepoint'); ROWS_SP = spName ? XLSX.utils.sheet_to_json(wb.Sheets[spName], { defval:'' }) : []; const srName = (wb.SheetNames||[]).find(n=>String(n).trim().toLowerCase()==='sr'); ROWS_SR = srName ? XLSX.utils.sheet_to_json(wb.Sheets[srName], { defval:'' }) : []; setRowsCount(ROWS_SELLER.length, ROWS_SP.length, ROWS_SR.length); const terr = uniqSorted(ROWS_SELLER.map(r=>norm(r['TERRITORY']))); setOptions(selT, terr, terr.length? 'Выберите территорию':'Нет данных по TERRITORY'); selT.disabled = terr.length===0; showEmpty(); }catch(e){ console.error(e); showError((e&&e.message)||'Ошибка чтения файла.'); setOptions(selT, [], 'Сначала подключите файл'); setOptions(selP, [], 'Сначала выберите TERRITORY'); setOptions(selM, [], 'Сначала выберите POS NAME'); showEmpty(); } }
+    const spRowCur = (cur.SP||[]).find(r=>norm(r[cur.mapSP['TERRITORY']||'TERRITORY'])===t && norm(r[cur.mapSP['POS NAME']||'POS NAME'])===p) || null;
+    const activeVal = spRowCur? norm(spRowCur[cur.mapSP['Активна тт']||'Активна тт']) : '';
+    posPill.style.display = (activeVal==='1'||activeVal==='true'||activeVal==='1.0') ? '' : 'none';
 
-  // === Авто-режим при загрузке страницы ===
-  if(location.protocol==='file:'){ elMode.textContent = 'Режим: локальный файл (file://)'; localBox.style.display=''; elFileUrl.textContent = '— (локальная загрузка)'; showEmpty(); }
-  else { elMode.textContent = 'Режим: сервер (fetch из корня)'; localBox.style.display='none'; elFileUrl.textContent = EXCEL_URLS.join(', '); loadExcelFromServer(); }
+    // Fallback суммы по точке (текущие)
+    const rowsCur = (cur.SELLER||[]).filter(r=>norm(r[cur.mapSeller['TERRITORY']])===t && norm(r[cur.mapSeller['POS NAME']])===p);
+    const fbSumsCur = sumByCanon(rowsCur, cur.mapSeller, OPS_CANON);
 
-  // Слушатели выбора
+    // Прошлый месяц
+    let spRowPrev=null, fbSumsPrev=null;
+    if(prev && prev.SELLER){
+      spRowPrev = (prev.SP||[]).find(r=>norm(r[prev.mapSP['TERRITORY']||'TERRITORY'])===t && norm(r[prev.mapSP['POS NAME']||'POS NAME'])===p) || null;
+      const rowsPrev = prev.SELLER.filter(r=>norm(r[prev.mapSeller['TERRITORY']])===t && norm(r[prev.mapSeller['POS NAME']])===p);
+      fbSumsPrev = sumByCanon(rowsPrev, prev.mapSeller, OPS_CANON);
+    }
+
+    const labels = cur.mapSP && Object.keys(cur.mapSP).length
+      ? labelsFromMap(cur.mapSP, {excludeMobile:true, insertStrongSecond:true})
+      : labelsFromMap(cur.mapSeller, {excludeMobile:true, insertStrongSecond:true});
+
+    renderByLabelsWithPrev(
+      posMetrics,
+      labels,
+      (label)=>{ // current
+        if(spRowCur && Object.hasOwn(spRowCur,label)){ const v=norm(spRowCur[label]); if(v!=='') return v; }
+        const canon = cur.revSP[label] || cur.revSeller[label] || label;
+        return fmtInt(fbSumsCur[canon] || 0);
+      },
+      (canon)=>{ // prev
+        if(!prev || !prev.SELLER) return null;
+        const colPrev = prev.mapSP[canon];
+        if(spRowPrev && colPrev && norm(spRowPrev[colPrev])!=='') return norm(spRowPrev[colPrev]);
+        return fmtInt((fbSumsPrev && fbSumsPrev[canon]) || 0);
+      },
+      cur.revSP && Object.keys(cur.revSP).length? cur.revSP : cur.revSeller,
+      true
+    );
+
+    posWarn.style.display = spRowCur ? 'none' : '';
+  }
+
+  function showNum(row){
+    const {cur,prev} = DS; if(!row) return;
+    resEmpty.style.display='none'; posBox.style.display='none'; numBox.style.display='';
+
+    const NUM = cur.mapSeller['MOBILE_NUMBER'], TERR=cur.mapSeller['TERRITORY'], POS=cur.mapSeller['POS NAME'];
+    const mobile = norm(row[NUM]); elMobile.textContent = mobile || '—';
+
+    // найти прошлый по тем же TERR+POS+MOBILE
+    let rowPrev=null;
+    if(prev && prev.SELLER){
+      rowPrev = prev.SELLER.find(r=> norm(r[prev.mapSeller['TERRITORY']])===norm(row[TERR]) &&
+                                     norm(r[prev.mapSeller['POS NAME']])===norm(row[POS]) &&
+                                     norm(r[prev.mapSeller['MOBILE_NUMBER']])===mobile ) || null;
+    }
+
+    const labels = labelsFromMap(cur.mapSeller, {excludeMobile:true});
+    renderByLabelsWithPrev(
+      numMetrics,
+      labels,
+      (label)=> norm(row[label]||''),
+      (canon)=>{ if(!rowPrev) return null; const colPrev = prev.mapSeller[canon]; return colPrev? norm(rowPrev[colPrev]) : null; },
+      cur.revSeller,
+      true
+    );
+  }
+
+  // === селекты ===
+  function rebuildTerritory(){
+    const {cur}=DS; if(!cur.SELLER) return;
+    const TERR = cur.mapSeller['TERRITORY'];
+    const terrs = uniqSorted(cur.SELLER.map(r=>norm(r[TERR])));
+    selT.innerHTML = ['<option value="">Выберите территорию</option>'].concat(terrs.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`)).join('');
+    selT.disabled = terrs.length===0;
+    selP.innerHTML = '<option value="">Сначала выберите TERRITORY</option>'; selP.disabled = true;
+    selM.innerHTML = '<option value="">Сначала выберите POS NAME</option>'; selM.disabled = true;
+    showEmpty();
+  }
+
+  function rebuildPos(){
+    const {cur,prev}=DS; const t = norm(selT.value); if(!t) return;
+    const TERR = cur.mapSeller['TERRITORY'], POS = cur.mapSeller['POS NAME'];
+    const list = uniqSorted(cur.SELLER.filter(r=>norm(r[TERR])===t).map(r=>norm(r[POS])));
+
+    // Активные ТТ (сначала cur.SP, иначе prev.SP)
+    const activeSet = new Set();
+    (cur.SP||[]).forEach(r=>{ if(norm(r[cur.mapSP['TERRITORY']||'TERRITORY'])===t && (norm(r[cur.mapSP['Активна тт']||'Активна тт'])==='1'||norm(r[cur.mapSP['Активна тт']||'Активна тт'])==='true')) activeSet.add(norm(r[cur.mapSP['POS NAME']||'POS NAME'])); });
+    if(!activeSet.size && prev && prev.SP){
+      prev.SP.forEach(r=>{ if(norm(r[prev.mapSP['TERRITORY']||'TERRITORY'])===t && (norm(r[prev.mapSP['Активна тт']||'Активна тт'])==='1'||norm(r[prev.mapSP['Активна тт']||'Активна тт'])==='true')) activeSet.add(norm(r[prev.mapSP['POS NAME']||'POS NAME'])); });
+    }
+
+    // ORG ID (cur.SP приоритет, затем prev.SP, затем Seller)
+    const items = list.map(p=>{
+      let org='';
+      let r = (cur.SP||[]).find(r=>norm(r[cur.mapSP['TERRITORY']||'TERRITORY'])===t && norm(r[cur.mapSP['POS NAME']||'POS NAME'])===p);
+      if(r) org = norm(r[cur.mapSP['ORG ID']||'ORG ID']);
+      if(!org && prev && prev.SP){
+        r = prev.SP.find(r=>norm(r[prev.mapSP['TERRITORY']||'TERRITORY'])===t && norm(r[prev.mapSP['POS NAME']||'POS NAME'])===p);
+        if(r) org = norm(r[prev.mapSP['ORG ID']||'ORG ID']);
+      }
+      if(!org){ const rs = cur.SELLER.find(r=>norm(r[TERR])===t && norm(r[POS])===p); org = rs? norm(rs[cur.mapSeller['ORG ID']||'ORG ID']) : ''; }
+      const label = (activeSet.has(p)? '🟢 ' : '') + p + (org? ' — ' + org : '');
+      return { value:p, label };
+    });
+
+    selP.innerHTML = ['<option value="">Выберите точку</option>'].concat(items.map(o=>`<option value="${esc(o.value)}">${esc(o.label)}</option>`)).join('');
+    selP.disabled = items.length===0;
+    selM.innerHTML = '<option value="">Сначала выберите POS NAME</option>'; selM.disabled = true;
+
+    showTerritory(t);
+    posBox.style.display='none'; numBox.style.display='none'; resEmpty.style.display='none';
+  }
+
+  function rebuildMobile(){
+    const {cur}=DS; const t = norm(selT.value), p = norm(selP.value);
+    terBox.style.display='none';
+    const TERR=cur.mapSeller['TERRITORY'], POS=cur.mapSeller['POS NAME'], NUM=cur.mapSeller['MOBILE_NUMBER'];
+    const FN=cur.mapSeller['First Name']||'First Name', LN=cur.mapSeller['Last Name']||'Last Name';
+
+    const map = new Map();
+    cur.SELLER.forEach(r=>{
+      if(norm(r[TERR])===t && norm(r[POS])===p){
+        const num = norm(r[NUM]); if(!num) return;
+        const name = [norm(r[FN]), norm(r[LN])].filter(Boolean).join(' ').trim();
+        map.set(num, name? `${num} — ${name}` : num);
+      }
+    });
+    const items = Array.from(map.entries()).map(([value,label])=>({value,label})).sort((a,b)=>a.label.localeCompare(b.label,'uk',{numeric:true}));
+    selM.innerHTML = ['<option value="">Выберите номер</option>'].concat(items.map(o=>`<option value="${esc(o.value)}">${esc(o.label)}</option>`)).join('');
+    selM.disabled = items.length===0;
+
+    if(p) showPos(t,p); else posBox.style.display='none';
+  }
+
+  function onSelectChanged(){
+    const {cur}=DS; const t = norm(selT.value), p = norm(selP.value), m = norm(selM.value);
+    if(!t||!p||!m) return;
+    const NUM=cur.mapSeller['MOBILE_NUMBER'], TERR=cur.mapSeller['TERRITORY'], POS=cur.mapSeller['POS NAME'];
+    const row = cur.SELLER.find(r=>norm(r[TERR])===t && norm(r[POS])===p && norm(r[NUM])===m) || null;
+    showNum(row);
+  }
+
   selT.addEventListener('change', rebuildPos);
   selP.addEventListener('change', rebuildMobile);
   selM.addEventListener('change', onSelectChanged);
+
+  btnReset.addEventListener('click', ()=>{ if(!DS.cur.SELLER) return; rebuildTerritory(); });
+
+  // === загрузка из корня ===
+  btnReload.addEventListener('click', loadFromRoot);
+
+  async function fetchRoot(url){
+    const res = await fetch(url+`?v=${Date.now()}`, {cache:'no-store'});
+    if(!res.ok) throw new Error(`${url} (HTTP ${res.status})`);
+    return XLSX.read(await res.arrayBuffer(), { type:'array' });
+  }
+
+  function loadIntoDS(which, wb){
+    const out={};
+    const getSheet = name => (wb.SheetNames||[]).find(n=>String(n).trim().toLowerCase()===name);
+    // Seller
+    const sName = getSheet('seller'); if(!sName) throw new Error(`[${which}] нет листа 'Seller'`);
+    out.SELLER = XLSX.utils.sheet_to_json(wb.Sheets[sName], {defval:''});
+    if(!out.SELLER.length) throw new Error(`[${which}] лист 'Seller' пуст`);
+    out.mapSeller = buildMap(Object.keys(out.SELLER[0]||{})); out.revSeller = invertMap(out.mapSeller);
+    ['TERRITORY','POS NAME','MOBILE_NUMBER'].forEach(k=>{ if(!out.mapSeller[k]) throw new Error(`[${which}] нет колонки ${k} в Seller`); });
+    // SalePoint
+    const spName = getSheet('salepoint');
+    if(spName){ out.SP = XLSX.utils.sheet_to_json(wb.Sheets[spName], {defval:''}); out.mapSP = buildMap(Object.keys(out.SP[0]||{})); out.revSP = invertMap(out.mapSP); }
+    else { out.SP=[]; out.mapSP={}; out.revSP={}; }
+    // SR
+    const srName = getSheet('sr'); out.SR = srName ? XLSX.utils.sheet_to_json(wb.Sheets[srName], {defval:''}) : [];
+    DS[which]=out;
+  }
+
+  async function loadFromRoot(){
+    try{
+      elErr.textContent=''; elStat.textContent='Загружаю файлы из корня…';
+      const wbCur = await fetchRoot(ROOT_CUR);  loadIntoDS('cur', wbCur);
+      try{ const wbPrev = await fetchRoot(ROOT_PREV); loadIntoDS('prev', wbPrev); elStat.textContent='Оба файла загружены'; }
+      catch(e){ DS.prev={SELLER:[],SP:[],SR:[],mapSeller:{},mapSP:{},revSeller:{},revSP:{}}; elStat.textContent='Загружен только текущий (/seller.xlsx)'; }
+      setRowsCount();
+      rebuildTerritory();
+    }catch(e){
+      console.error(e); showError(e.message||'Ошибка загрузки'); elStat.textContent='Ошибка загрузки';
+      selT.innerHTML = '<option value="">Не удалось загрузить файл(ы)</option>'; selT.disabled=true;
+    }
+  }
+
+  // автостарт
+  if(location.protocol==='file:'){
+    elStat.textContent='Эта версия читает только по http(s):// из корня домена.';
+  } else {
+    loadFromRoot();
+  }
 </script>
 </body>
 </html>
